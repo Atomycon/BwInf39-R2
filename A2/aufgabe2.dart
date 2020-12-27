@@ -6,11 +6,18 @@ class Skewer {
 
   Skewer(this.bowlNumbers, this.fruits);
 
+  bool get isEmpty => bowlNumbers.isEmpty;
+  bool get isNotEmpty => bowlNumbers.isNotEmpty;
+
   //removes overlapping sections of skewer and returns overlapping skewer (empty lists if nothing is overlapping)
   Skewer cutOverlap(Skewer skewer) {
     List<int> overlapBowlNumbers = [];
     List<String> overlapFruits = [];
 
+    //do not cutOverlap the same skewer
+    if (this == skewer) {
+      return Skewer(overlapBowlNumbers, overlapFruits);
+    }
     //add overlap
     for (int i = 0; i < bowlNumbers.length; i++) {
       for (int j = 0; j < skewer.bowlNumbers.length; j++) {
@@ -22,7 +29,6 @@ class Skewer {
         }
       }
     }
-
     //remove overlapping elements
     skewer.bowlNumbers.removeWhere((element) {
       return overlapBowlNumbers.contains(element);
@@ -89,7 +95,44 @@ void main() async {
 
 Map<String, int> assignFruitForBowl(List<Skewer> skewers) {
   Map<String, int> fruitForBowl = {};
+  reduce(skewers);
+  print("\n");
+  print(skewers);
   return fruitForBowl;
+}
+
+List<Skewer> reduce(List<Skewer> skewers) {
+  for (int i = 0; i < skewers.length; i++) {
+    //j = i everything < i has already been checked for overlapping parts
+    for (int j = i; j < skewers.length; j++) {
+      Skewer overlapSkewer = skewers[i].cutOverlap(skewers[j]);
+      //remove empty skewer
+      //if empty, the origin skewers cannot be empty
+      if (overlapSkewer.isNotEmpty) {
+        skewers.insert(i, overlapSkewer);
+        //both skewers empty.
+        //if overlapSkewer is placed after the second Skewer (i > j), check for the j position
+        if (skewers[i + 1].isEmpty && skewers[i > j ? j : j + 1].isEmpty) {
+          //|| skewers[j].isEmpty)
+          skewers.removeAt(i + 1);
+          skewers.removeAt(j);
+          //TODO check
+          j--;
+        }
+        //first skewer empty
+        else if (skewers[i + 1].isEmpty) {
+          skewers.removeAt(i + 1);
+        }
+        //second skewer empty
+        //if overlapSkewer is placed after the second Skewer (i > j), check for the j position
+        else if (skewers[i > j ? j : j + 1].isEmpty) {
+          skewers.removeAt(i > j ? j : j + 1);
+        }
+        //no skewer empty, no action required
+      }
+    }
+  }
+  return skewers;
 }
 
 List<String> extractFruitsFrom(String text) {
