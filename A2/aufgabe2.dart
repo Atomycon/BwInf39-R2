@@ -11,13 +11,14 @@ class Skewer {
   bool get isEmpty => bowlNumbers.isEmpty;
   bool get isNotEmpty => bowlNumbers.isNotEmpty;
 
-  //removes overlapping sections of skewer and returns overlapping skewer (empty lists if nothing is overlapping)
+  //removes overlapping sections of skewer and returns overlapping skewer (containing empty lists if nothing is overlapping)
   Skewer cutOverlap(Skewer skewer) {
     List<int> overlapBowlNumbers = [];
     List<String> overlapFruits = [];
 
     //do not cutOverlap the same skewer
     if (this == skewer) {
+      print("useless cut");
       return Skewer(overlapBowlNumbers, overlapFruits);
     }
     //add overlap
@@ -74,15 +75,15 @@ void main() async {
     "spiesse7.txt",
   ];
   for (String filename in filenames) {
-    String content = await File("A2\\beispiele\\$filename")
-        .readAsString(); //TODO for final beispiele\\$filename
-    List<String> lines = content.split("\n");
+    File file =
+        await File("A2\\beispiele\\$filename"); //TODO beispiele\\$filename
+    List<String> lines = await file.readAsLines();
     lines.removeWhere((element) => element.isEmpty); //remove empty lines
     int nFruits = int.parse(lines[0]);
     List<String> targetFruits = extractFruitsFrom(lines[1]);
     int nSkewer = int.parse(lines[2]);
     List<Skewer> skewers = [];
-    //create skewers
+    //create skewers, starting from line 3
     for (int n = 3; n < nSkewer * 2 + 3; n += 2) {
       List<int> bowlNumbers = [];
 
@@ -96,13 +97,11 @@ void main() async {
 
       skewers.add(Skewer(bowlNumbers, fruits));
     }
-
-    //TODO handle if wanted fruit is not in map (only can be one) or cannot be solved
     try {
       List<int> solution = solve(skewers, targetFruits, nFruits);
-      print("Solution for $filename, use bowls: $solution");
+      print("\nSolution for $filename, use bowls: $solution\n");
     } catch (exception) {
-      print(exception);
+      print("\n$filename: $exception\n");
     }
   }
 }
@@ -110,16 +109,18 @@ void main() async {
 List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
   List<int> bowls = [];
   List<Skewer> reducedSkewers = reduce(skewers);
-  print("\nReduced skewers $reducedSkewers");
+
+  //reduction analysis
+  print("Reduced skewers $reducedSkewers");
 
   //map single items and store combinations in a separate list
   Map<String, int> bowlByFruit = {};
   List<Skewer> combinations = [];
   for (int i = 0; i < skewers.length; i++) {
     try {
-      bowlByFruit.addEntries([skewers[i].getMapEntry()]);
+      bowlByFruit.addEntries([reducedSkewers[i].getMapEntry()]);
     } on MapManyToManyException {
-      combinations.add(skewers[i]);
+      combinations.add(reducedSkewers[i]);
     }
   }
 
@@ -130,6 +131,7 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
       bowls.add(bowlByFruit.putIfAbsent(
           targetFruits[i], () => throw "No bowl value"));
       targetFruits.removeAt(i);
+      //do not skip the next item
       i--;
     }
     //try to assign unclear pairs
@@ -147,6 +149,7 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
           });
           //add numbers
           bowls.addAll(combinations[j].bowlNumbers);
+          //do not skip the next item
           i--;
           break; //inner loop
         }
@@ -155,7 +158,7 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
   }
 
   //TODO write test for >= two unknown fruits
-  //handle if target fruit(s) were not seen on skewers
+  //handling if target fruit(s) was not seen on skewers
   if (targetFruits.isNotEmpty) {
     //collect noted bowls numbers
     List<int> notedBowls = [];
@@ -172,21 +175,30 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
         if (!notedBowls.contains(i)) unnotedBowls.add(i);
       }
       bowls.addAll(unnotedBowls);
+
+      //for analysis of clearly assignable pairs
+      if (targetFruits.length == 1) {
+        bowlByFruit.putIfAbsent(targetFruits[0], () => unnotedBowls[0]);
+      } else {
+        combinations.add(Skewer(unnotedBowls, targetFruits));
+      }
       targetFruits = [];
     } else {
       throw "To little information to make skewer";
     }
   }
 
-  print(targetFruits);
-
+  //analysis
+  print("One to one combinations: $bowlByFruit");
+  print("Many to many combinations: $combinations");
   return bowls;
 }
 
 List<Skewer> reduce(List<Skewer> skewers) {
   for (int i = 0; i < skewers.length; i++) {
-    //j = i everything < i has already been checked for overlapping parts
-    for (int j = i; j < skewers.length; j++) {
+    //j = i because everything < i has already been checked for overlapping parts.
+    //j= i + 1 because on pos i is the current item and comparing the same item does not make sense
+    for (int j = i + 1; j < skewers.length; j++) {
       Skewer overlapSkewer = skewers[i].cutOverlap(skewers[j]);
       //remove empty skewer
       //if empty, the origin skewers cannot be empty
