@@ -73,10 +73,12 @@ void main() async {
     "spiesse5.txt",
     "spiesse6.txt",
     "spiesse7.txt",
+    "spiesse8.txt", //for >1 unnoted fruits
   ];
   for (String filename in filenames) {
     File file =
         await File("A2\\beispiele\\$filename"); //TODO beispiele\\$filename
+    //readAsLines to also handle CR LF endings
     List<String> lines = await file.readAsLines();
     lines.removeWhere((element) => element.isEmpty); //remove empty lines
     int nFruits = int.parse(lines[0]);
@@ -157,7 +159,6 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
     }
   }
 
-  //TODO write test for >= two unknown fruits
   //handling if target fruit(s) was not seen on skewers
   if (targetFruits.isNotEmpty) {
     //collect noted bowls numbers
