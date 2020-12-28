@@ -112,14 +112,14 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
   List<Skewer> reducedSkewers = reduce(skewers);
   print("\nReduced skewers $reducedSkewers");
 
-  //map single items and store multipleOptions in a separate list
+  //map single items and store combinations in a separate list
   Map<String, int> bowlByFruit = {};
-  List<Skewer> multipleOptions = [];
+  List<Skewer> combinations = [];
   for (int i = 0; i < skewers.length; i++) {
     try {
       bowlByFruit.addEntries([skewers[i].getMapEntry()]);
     } on MapManyToManyException {
-      multipleOptions.add(skewers[i]);
+      combinations.add(skewers[i]);
     }
   }
 
@@ -134,11 +134,11 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
     }
     //try to assign unclear pairs
     else {
-      for (int j = 0; j < multipleOptions.length; j++) {
+      for (int j = 0; j < combinations.length; j++) {
         //test if targetFruit can be find in skewer
-        if (multipleOptions[j].fruits.contains(targetFruits[i])) {
+        if (combinations[j].fruits.contains(targetFruits[i])) {
           //test if every fruit is in the targetFruits
-          multipleOptions[j].fruits.forEach((fruit) {
+          combinations[j].fruits.forEach((fruit) {
             if (!targetFruits.contains(fruit)) {
               throw "To little information to make skewer";
             }
@@ -146,11 +146,35 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
             targetFruits.removeWhere((targetFruit) => fruit == targetFruit);
           });
           //add numbers
-          bowls.addAll(multipleOptions[j].bowlNumbers);
+          bowls.addAll(combinations[j].bowlNumbers);
           i--;
           break; //inner loop
         }
       }
+    }
+  }
+
+  //TODO write test for >= two unknown fruits
+  //handle if target fruit(s) were not seen on skewers
+  if (targetFruits.isNotEmpty) {
+    //collect noted bowls numbers
+    List<int> notedBowls = [];
+    notedBowls.addAll(bowlByFruit.values);
+    combinations.forEach((combination) {
+      notedBowls.addAll(combination.bowlNumbers);
+    });
+
+    //check if the number of unknown fruits is equal to the target fruits
+    if (targetFruits.length == nFruits - notedBowls.length) {
+      List<int> unnotedBowls = [];
+      for (int i = 1; i <= nFruits; i++) {
+        //bowl not noted
+        if (!notedBowls.contains(i)) unnotedBowls.add(i);
+      }
+      bowls.addAll(unnotedBowls);
+      targetFruits = [];
+    } else {
+      throw "To little information to make skewer";
     }
   }
 
