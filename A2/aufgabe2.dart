@@ -1,5 +1,7 @@
 import 'dart:io';
 
+class MapManyToManyException implements Exception {}
+
 class Skewer {
   final List<int> bowlNumbers;
   final List<String> fruits;
@@ -47,6 +49,13 @@ class Skewer {
     return Skewer(overlapBowlNumbers, overlapFruits);
   }
 
+  MapEntry<String, int> getMapEntry() {
+    if (bowlNumbers.length > 1) {
+      throw MapManyToManyException();
+    }
+    return MapEntry(fruits[0], bowlNumbers[0]);
+  }
+
   @override
   String toString() {
     return "$bowlNumbers = $fruits";
@@ -88,17 +97,66 @@ void main() async {
       skewers.add(Skewer(bowlNumbers, fruits));
     }
 
-    //TODO handle if wanted fruit is not in map or cannot be solved
-    Map<String, int> solution = assignFruitForBowl(skewers);
+    //TODO handle if wanted fruit is not in map (only can be one) or cannot be solved
+    try {
+      List<int> solution = solve(skewers, targetFruits, nFruits);
+      print("Solution for $filename, use bowls: $solution");
+    } catch (exception) {
+      print(exception);
+    }
   }
 }
 
-Map<String, int> assignFruitForBowl(List<Skewer> skewers) {
-  Map<String, int> fruitForBowl = {};
-  reduce(skewers);
-  print("\n");
-  print(skewers);
-  return fruitForBowl;
+List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
+  List<int> bowls = [];
+  List<Skewer> reducedSkewers = reduce(skewers);
+  print("\nReduced skewers $reducedSkewers");
+
+  //map single items and store multipleOptions in a separate list
+  Map<String, int> bowlByFruit = {};
+  List<Skewer> multipleOptions = [];
+  for (int i = 0; i < skewers.length; i++) {
+    try {
+      bowlByFruit.addEntries([skewers[i].getMapEntry()]);
+    } on MapManyToManyException {
+      multipleOptions.add(skewers[i]);
+    }
+  }
+
+  //assign pairs
+  for (int i = 0; i < targetFruits.length; i++) {
+    //assign clear pairs
+    if (bowlByFruit.containsKey(targetFruits[i])) {
+      bowls.add(bowlByFruit.putIfAbsent(
+          targetFruits[i], () => throw "No bowl value"));
+      targetFruits.removeAt(i);
+      i--;
+    }
+    //try to assign unclear pairs
+    else {
+      for (int j = 0; j < multipleOptions.length; j++) {
+        //test if targetFruit can be find in skewer
+        if (multipleOptions[j].fruits.contains(targetFruits[i])) {
+          //test if every fruit is in the targetFruits
+          multipleOptions[j].fruits.forEach((fruit) {
+            if (!targetFruits.contains(fruit)) {
+              throw "To little information to make skewer";
+            }
+            //remove matching fruits
+            targetFruits.removeWhere((targetFruit) => fruit == targetFruit);
+          });
+          //add numbers
+          bowls.addAll(multipleOptions[j].bowlNumbers);
+          i--;
+          break; //inner loop
+        }
+      }
+    }
+  }
+
+  print(targetFruits);
+
+  return bowls;
 }
 
 List<Skewer> reduce(List<Skewer> skewers) {
@@ -113,10 +171,9 @@ List<Skewer> reduce(List<Skewer> skewers) {
         //both skewers empty.
         //if overlapSkewer is placed after the second Skewer (i > j), check for the j position
         if (skewers[i + 1].isEmpty && skewers[i > j ? j : j + 1].isEmpty) {
-          //|| skewers[j].isEmpty)
           skewers.removeAt(i + 1);
           skewers.removeAt(j);
-          //TODO check
+          //go one step back to check element on the new position (only one step back necessary because first empty position is replaced with the cut item)
           j--;
         }
         //first skewer empty
