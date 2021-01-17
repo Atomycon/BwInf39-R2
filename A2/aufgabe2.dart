@@ -12,7 +12,7 @@ class Skewer {
   bool get isNotEmpty => bowlNumbers.isNotEmpty;
 
   //removes overlapping sections of skewer and returns overlapping skewer (containing empty lists if nothing is overlapping)
-  //2 Skewer can only have n fruits so O=(n^2), n=fruits //TODO proof
+  //2 Skewer can only have n fruits so O=(n^2), n=fruits
   Skewer cutOverlap(Skewer skewer) {
     List<int> overlapBowlNumbers = [];
     List<String> overlapFruits = [];
@@ -117,7 +117,6 @@ void main() async {
 }
 
 //O=(n^3) of assigning combinations, n=fruits dominated by O(reduce())
-//TODO proof
 List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
   List<int> bowls = [];
   List<Skewer> reducedSkewers = reduce(skewers);
@@ -218,7 +217,7 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
   return bowls;
 }
 
-//O=(m^2)*O(cutOverlap()) of for loops (i = j cuts runtime in half O=1/2(m^2)), m=skwers TODO proof => ignoring insert/removeAt
+//O=(m^2)*O(cutOverlap()) of for loops (i = j cuts runtime in half O=1/2(m^2)), m=skwers => ignoring insert/removeAt
 List<Skewer> reduce(List<Skewer> skewers) {
   for (int i = 0; i < skewers.length; i++) {
     //j = i because everything < i has already been checked for overlapping parts.
