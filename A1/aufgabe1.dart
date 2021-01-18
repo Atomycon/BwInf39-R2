@@ -43,6 +43,7 @@ void main() async {
   }
 }
 
+//using knapsack problem/rectangle packing problem
 void solve(int start, int end, int width, List<Booth> booths) {
   //Booth that one a stand by hour
   List<List<Booth>> timeFrames =
