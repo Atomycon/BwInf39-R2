@@ -8,8 +8,8 @@ void main() async {
     "eisbuden3.txt",
     "eisbuden4.txt",
     "eisbuden5.txt",
-    "eisbuden6.txt",
-    "eisbuden7.txt",
+    /*"eisbuden6.txt",
+    "eisbuden7.txt",*/
   ];
 
   for (String filename in filenames) {
@@ -28,83 +28,91 @@ void main() async {
     List<int> houses =
         List.generate(numHouses, (index) => int.parse(houseText[index]));
 
-    var solution = solve(circumference, houses);
+    var solution = solve(houses, circumference);
     print("Solution for $filename: $solution");
   }
 }
 
-List<int> solve(circumference, housePos) {
-  List<int> icePos = [];
-  List<List<int>> groups = shortestMajority(circumference, housePos);
-  for (int i = 0; i < groups.length; i++) {
-    print("For group: ${groups[i]}:");
-    verifyLocation(groups[i], housePos, circumference);
-  }
-  return icePos;
+List<int> solve(List<int> houses, int circumference) {
+  return bruteForce(houses, circumference);
 }
 
-void verifyLocation(List<int> locations, List<int> houses, int circumference) {
-  Map<int, int> shortestDistanceToLocations = {};
+List<int> bruteForce(List<int> houses, int circumference) {
+  Map<String, List<List<int>>> graph = {};
+
+  List<List<int>> solution = [];
+  List<Map<int, int>> scenarios = [];
+
+  for (int i = 0; i < circumference; i++) {
+    for (int j = i; j < circumference; j++) {
+      for (int k = j; k < circumference; k++) {
+        List<int> location = [i, j, k];
+        Map<int, int> houseDistanceToLocation =
+            mapDistanceToLocation(location, houses, circumference);
+        //add locations
+        for (int i = 1; i <= location.length; i++) {
+          houseDistanceToLocation.putIfAbsent(-i, () => location[i - 1]);
+        }
+        scenarios.add(houseDistanceToLocation);
+      }
+    }
+  }
+  for (int i = 0; i < scenarios.length; i++) {
+    Map<int, int> scenario = scenarios[i];
+    String key = "${scenario[-1]},${scenario[-2]},${scenario[-3]}";
+    graph.putIfAbsent(key, () => []);
+    for (int j = 0; j < scenarios.length; j++) {
+      if (i == j) continue;
+      Map<int, int> testingScenario = scenarios[j];
+      int voteCount = 0;
+      for (var house in houses) {
+        int currentDistance = scenario[house] ?? -1;
+        int tempDistance = testingScenario[house] ?? -1;
+
+        if (currentDistance == -1 || tempDistance == -1) {
+          throw "distance cannot be null";
+        }
+
+        if (currentDistance > tempDistance) {
+          voteCount++;
+        }
+      }
+      if (voteCount > (houses.length / 2 - 1).round()) {
+        List<int> location = [
+          testingScenario[-1] ?? -1,
+          testingScenario[-2] ?? -1,
+          testingScenario[-3] ?? -1
+        ];
+
+        List<List<int>> locations = graph[key] ?? [];
+        locations.add(location);
+      }
+    }
+  }
+  graph.forEach((key, value) {
+    if (value.isEmpty) {
+      print(key);
+    }
+  });
+
+  //print(graph);
+  return [];
+}
+
+Map<int, int> mapDistanceToLocation(
+    List<int> locations, List<int> houses, int circumference) {
+  Map<int, int> distanceToLocation = {};
 
   for (var house in houses) {
-    var shortestPath = circumference;
+    int minDistance = circumference;
     for (var location in locations) {
-      shortestPath = Math.min(
-          shortestPath, distanceBetween(house, location, circumference));
+      minDistance = Math.min(
+          minDistance, distanceBetween(house, location, circumference));
     }
-    shortestDistanceToLocations.putIfAbsent(house, () => shortestPath);
+
+    distanceToLocation.putIfAbsent(house, () => minDistance);
   }
-  for (int i = 0; i < circumference; i++) {
-    int voteCount = 0;
-    for (var house in houses) {
-      int distance = shortestDistanceToLocations[house] ?? -1;
-      if (distance == -1) {
-        throw "null assigned for house distance";
-      }
-      if (distanceBetween(house, i, circumference) > distance) {
-        voteCount++;
-      }
-    }
-    if (voteCount > houses.length) {
-      print("Majority vote of $voteCount for to move ice shop to $i");
-    }
-  }
-}
-
-/*
-List<int> isolatedShortestMajority(int circumference, List<int> housePos) {
-
-}*/
-
-//returns the shortest path to block a vote (n/2 if n%2=0 or n/2+1 if n%=1), both values inclusive related to array pos
-List<List<int>> shortestMajority(int circumference, List<int> houses) {
-  //round up/down
-  int numMajority = ((houses.length) / 2).round();
-
-  //init with max length
-  int shortestPath = circumference;
-  List<List<int>> shortestMajority = [];
-
-  for (int arrayPos = 0; arrayPos < numMajority; arrayPos++) {
-    int arrayEndPos = arrayPos + numMajority - 1;
-    int distance = 0;
-    //prevent index out of range
-    if (arrayEndPos >= houses.length) arrayEndPos = arrayEndPos - houses.length;
-
-    distance =
-        distanceBetween(houses[arrayPos], houses[arrayEndPos], circumference);
-
-    if (distance < shortestPath) {
-      shortestPath = distance;
-      shortestMajority = [
-        [houses[arrayPos], houses[arrayEndPos]]
-      ];
-    } else if (distance == shortestPath) {
-      shortestMajority.add([houses[arrayPos], houses[arrayEndPos]]);
-    }
-  }
-  print(shortestMajority);
-  return shortestMajority;
+  return distanceToLocation;
 }
 
 //shortest distance between two points
@@ -122,6 +130,10 @@ int distanceBetween(int from, int to, int circumference,
   }
 
   if (initDistance >= 0) {
+    if (to != from &&
+        (distance <= initDistance ? distance : initDistance) == 0) {
+      print("Something wrong here I can feel it");
+    }
     return distance <= initDistance ? distance : initDistance;
   }
 
