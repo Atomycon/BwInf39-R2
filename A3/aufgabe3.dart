@@ -6,9 +6,9 @@ void main() async {
     "eisbuden1.txt",
     "eisbuden2.txt",
     "eisbuden3.txt",
-    "eisbuden4.txt",
+    /*"eisbuden4.txt",
     "eisbuden5.txt",
-    /*"eisbuden6.txt",
+    "eisbuden6.txt",
     "eisbuden7.txt",*/
   ];
 
@@ -38,9 +38,10 @@ List<int> solve(List<int> houses, int circumference) {
 }
 
 List<int> bruteForce(List<int> houses, int circumference) {
-  Map<String, List<List<int>>> graph = {};
+  int shortestPath = circumference * houses.length;
+  List<List<int>> shortestPathLocations = [];
 
-  List<List<int>> solution = [];
+  List<Map<int, int>> solution = [];
   List<Map<int, int>> scenarios = [];
 
   for (int i = 0; i < circumference; i++) {
@@ -49,18 +50,38 @@ List<int> bruteForce(List<int> houses, int circumference) {
         List<int> location = [i, j, k];
         Map<int, int> houseDistanceToLocation =
             mapDistanceToLocation(location, houses, circumference);
-        //add locations
+
+        //assign shortestPath
+        int pathLengths = 0;
+        List<int> values = houseDistanceToLocation.values.toList();
+        for (var value in values) {
+          pathLengths += value;
+        }
+        if (pathLengths < shortestPath) {
+          shortestPath = pathLengths;
+          shortestPathLocations = [location];
+        } else if (pathLengths == shortestPath) {
+          shortestPathLocations.add(location);
+        }
+
+        //add location
         for (int i = 1; i <= location.length; i++) {
           houseDistanceToLocation.putIfAbsent(-i, () => location[i - 1]);
         }
+
         scenarios.add(houseDistanceToLocation);
       }
     }
   }
+
+  print("$shortestPath with $shortestPathLocations");
+
+  int majority = (houses.length / 2).round();
+
+  loop:
   for (int i = 0; i < scenarios.length; i++) {
     Map<int, int> scenario = scenarios[i];
-    String key = "${scenario[-1]},${scenario[-2]},${scenario[-3]}";
-    graph.putIfAbsent(key, () => []);
+
     for (int j = 0; j < scenarios.length; j++) {
       if (i == j) continue;
       Map<int, int> testingScenario = scenarios[j];
@@ -69,33 +90,16 @@ List<int> bruteForce(List<int> houses, int circumference) {
         int currentDistance = scenario[house] ?? -1;
         int tempDistance = testingScenario[house] ?? -1;
 
-        if (currentDistance == -1 || tempDistance == -1) {
-          throw "distance cannot be null";
-        }
-
         if (currentDistance > tempDistance) {
           voteCount++;
         }
       }
-      if (voteCount > (houses.length / 2 - 1).round()) {
-        List<int> location = [
-          testingScenario[-1] ?? -1,
-          testingScenario[-2] ?? -1,
-          testingScenario[-3] ?? -1
-        ];
-
-        List<List<int>> locations = graph[key] ?? [];
-        locations.add(location);
-      }
+      if (voteCount >= majority) continue loop;
     }
+    solution.add(scenario);
   }
-  graph.forEach((key, value) {
-    if (value.isEmpty) {
-      print(key);
-    }
-  });
 
-  //print(graph);
+  print(solution);
   return [];
 }
 
