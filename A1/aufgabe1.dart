@@ -121,6 +121,37 @@ List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
   return solution;
 }
 
+//fill a line of the bin with booths using knapsack
+void fillLine(int line, List<List<int>> bin, List<Booth> availableBooths) {
+  List<Booth> booths = availableBooths;
+  for (int i = 0; i < bin[line].length; i++) {
+    //check if space is already filled
+    int value = bin[line][i];
+    if (value >= 0) continue;
+    //free space is presented as a negative value
+    int space = value * (-1);
+
+    //calculate the booths with the best fit for the space
+    List<Booth> toFill = knapsack(booths, space);
+    if (toFill.isEmpty) continue;
+
+    //sort toFill by height
+    toFill.sort((a, b) => a.height.compareTo(b.height));
+
+    //remove best fit booth from all booths to prevent a booth appearing twice or more
+    booths.removeWhere((elementBooth) =>
+        toFill.any((elementBestFit) => elementBooth.id == elementBestFit.id));
+
+    //calculate space taken by toFill
+    int usedSpace = 0;
+    toFill.forEach((booth) {
+      usedSpace += booth.width;
+    });
+
+    int spaceLeft = space - usedSpace;
+  }
+}
+
 //taken from https://github.com/williamfiset/Algorithms/blob/master/src/main/java/com/williamfiset/algorithms/dp/Knapsack_01.java
 //solving knapsack with tabulation, ignoring height of booth
 List<Booth> knapsack(List<Booth> booths, int capacity) {
