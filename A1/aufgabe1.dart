@@ -20,13 +20,14 @@ class Booth {
 
 void main() async {
   List<String> filenames = [
-    /*"flohmarkt1.txt",
-    "flohmarkt2.txt",
-    "flohmarkt3.txt",*/
+    //"flohmarkt0.txt"
+    //"flohmarkt1.txt",
+    //"flohmarkt2.txt",
+    //"flohmarkt3.txt",
     "flohmarkt4.txt",
-    /*"flohmarkt5.txt",
-    "flohmarkt6.txt",
-    "flohmarkt7.txt",*/
+    //"flohmarkt5.txt",
+    //"flohmarkt6.txt",
+    //"flohmarkt7.txt",
   ];
 
   for (String filename in filenames) {
@@ -49,9 +50,10 @@ void main() async {
 
 //using knapsack problem/rectangle packing problem
 void solve(int start, int end, int width, List<Booth> booths) {
+  int height = end - start;
   //Booth that one a stand by hour
   List<List<Booth>> timeFrames =
-      List.filled(end - start, null).map((e) => <Booth>[]).toList();
+      List.filled(height, null).map((e) => <Booth>[]).toList();
 
   //timeframe: from timeframe to timeframe + 1
   for (int timeFrame = start, i = 0; timeFrame < end; timeFrame++, i++) {
@@ -63,7 +65,61 @@ void solve(int start, int end, int width, List<Booth> booths) {
     }
   }
 
-  print(topDown(timeFrames, 10, 1000));
+  print(topDown(timeFrames, height, width));
+}
+
+//solve problem with top down approach
+List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
+  print(timeFrames);
+  if (timeFrames.length != height) throw "invalid input";
+
+  List<List<int>> solution =
+      List.filled(height, null).map((e) => List.filled(width, 0)).toList();
+
+  for (int hour = 0; hour < solution.length; hour++) {
+    fillLine(hour, solution, timeFrames[hour]);
+  }
+
+  return solution;
+}
+
+void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
+  print(booths);
+  List<int> line = bin[lineNumber];
+  //figure out how much space is available
+  int start = -1;
+  for (int index = 0; index < line.length; index++) {
+    int currentFill = line[index];
+    //space is free and start has not been assigned yet
+    if (start < 0 && currentFill == 0) {
+      start = index;
+    }
+
+    //start has been assigned and space is ending
+    else if (start > -1 && (index + 1 == line.length || line[index + 1] != 0)) {
+      int end = index;
+      int space = end - start + 1;
+      //booths that best fit the available space
+      List<Booth> toFill = knapsack(booths, space);
+      if (toFill.isEmpty) continue;
+      //sort booths by their height (from large to small)
+      toFill.sort((a, b) => b.height.compareTo(a.height));
+
+      //remove best fit booths
+      booths.removeWhere((elementBooth) =>
+          toFill.any((elementBestFit) => elementBooth.id == elementBestFit.id));
+
+      //fill bin with booths
+      for (var booth in toFill) {
+        for (int i = lineNumber; i < (booth.height + lineNumber); i++) {
+          bin[i].fillRange(start, start + booth.width, booth.id);
+        }
+        start += booth.width;
+      }
+
+      start = -1;
+    }
+  }
 }
 
 List<Booth> boothsFromLines(List<String> lines) {
@@ -84,72 +140,6 @@ List<Booth> boothsFromLines(List<String> lines) {
     }
   }
   return booths;
-}
-
-//fill market top down
-List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
-  List<List<int>> solution =
-      List.filled(height, null).map((e) => [width]).toList();
-
-  if (timeFrames.length != height) throw "invalid input";
-
-  //for each layer
-  for (int i = 0; i < timeFrames.length; i++) {
-    List<Booth> timeFrame = timeFrames[i];
-    //fill out empty spots
-    int start = -1;
-    for (int j = 0; j < width; j++) {
-      int currentFill = solution[i][j];
-      if (start == -1 && currentFill == 0) {
-        start = j;
-      } else if (start > -1 && (currentFill != 0 || j + 1 == width)) {
-        List<Booth> toFill = knapsack(timeFrame, j - start + 1);
-        //TODO verify
-        toFill.sort((a, b) => a.height.compareTo(b.height));
-        for (var booth in toFill) {
-          for (int layer = i; i < booth.height; i++) {
-            solution[layer].fillRange(start, start + booth.width, booth.id);
-          }
-          start += booth.width;
-          timeFrame.removeWhere((element) => booth.id == element.id);
-        }
-        start = -1;
-      }
-    }
-  }
-
-  return solution;
-}
-
-//fill a line of the bin with booths using knapsack
-void fillLine(int line, List<List<int>> bin, List<Booth> availableBooths) {
-  List<Booth> booths = availableBooths;
-  for (int i = 0; i < bin[line].length; i++) {
-    //check if space is already filled
-    int value = bin[line][i];
-    if (value >= 0) continue;
-    //free space is presented as a negative value
-    int space = value * (-1);
-
-    //calculate the booths with the best fit for the space
-    List<Booth> toFill = knapsack(booths, space);
-    if (toFill.isEmpty) continue;
-
-    //sort toFill by height
-    toFill.sort((a, b) => a.height.compareTo(b.height));
-
-    //remove best fit booth from all booths to prevent a booth appearing twice or more
-    booths.removeWhere((elementBooth) =>
-        toFill.any((elementBestFit) => elementBooth.id == elementBestFit.id));
-
-    //calculate space taken by toFill
-    int usedSpace = 0;
-    toFill.forEach((booth) {
-      usedSpace += booth.width;
-    });
-
-    int spaceLeft = space - usedSpace;
-  }
 }
 
 //taken from https://github.com/williamfiset/Algorithms/blob/master/src/main/java/com/williamfiset/algorithms/dp/Knapsack_01.java
