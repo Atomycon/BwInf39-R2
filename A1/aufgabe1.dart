@@ -26,13 +26,13 @@ int revenue = 0;
 void main() async {
   List<String> filenames = [
     //"flohmarkt0.txt"
-    //"flohmarkt1.txt",
+    "flohmarkt1.txt",
     "flohmarkt2.txt",
-    //"flohmarkt3.txt",
-    //"flohmarkt4.txt",
-    //"flohmarkt5.txt",
-    //"flohmarkt6.txt",
-    //"flohmarkt7.txt",
+    "flohmarkt3.txt",
+    "flohmarkt4.txt",
+    "flohmarkt5.txt",
+    "flohmarkt6.txt",
+    "flohmarkt7.txt",
   ];
 
   for (String filename in filenames) {
@@ -100,13 +100,21 @@ void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
       start = index;
     }
 
+    /*
+    if (index == 810 && lineNumber == 6) {
+      print('bug paradise');
+    }
+    print(!(index + 1 == line.length) ? line[index + 1] : "");
+    */
+
     //start has been assigned and space is ending
     if (start > -1 && (index + 1 == line.length || line[index + 1] != 0)) {
       int end = index;
       int space = end - start + 1;
       //booths that best fit the available space
       List<Booth> toFill = knapsack(booths, space);
-      if (toFill.isEmpty) continue;
+      //TODO caused bug
+      if (toFill.isEmpty) {}
       //sort booths by their height (from large to small)
       toFill.sort((a, b) => b.height.compareTo(a.height));
 
