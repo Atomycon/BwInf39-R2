@@ -82,6 +82,11 @@ List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
   List<List<int>> solution =
       List.filled(height, null).map((e) => List.filled(width, 0)).toList();
 
+  //sort timeFrames by width so bigger blocks gets placed first
+  timeFrames.forEach((element) {
+    element.sort((a, b) => b.width.compareTo(a.width));
+  });
+
   for (int hour = 0; hour < solution.length; hour++) {
     fillLine(hour, solution, timeFrames[hour]);
   }
@@ -100,21 +105,12 @@ void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
       start = index;
     }
 
-    /*
-    if (index == 810 && lineNumber == 6) {
-      print('bug paradise');
-    }
-    print(!(index + 1 == line.length) ? line[index + 1] : "");
-    */
-
     //start has been assigned and space is ending
     if (start > -1 && (index + 1 == line.length || line[index + 1] != 0)) {
       int end = index;
       int space = end - start + 1;
       //booths that best fit the available space
       List<Booth> toFill = knapsack(booths, space);
-      //TODO caused bug
-      if (toFill.isEmpty) {}
       //sort booths by their height (from large to small)
       toFill.sort((a, b) => b.height.compareTo(a.height));
 
@@ -125,14 +121,6 @@ void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
       //fill bin with booths
       for (var booth in toFill) {
         for (int i = lineNumber; i < (booth.height + lineNumber); i++) {
-          if (bin[i][start] != 0) {
-            print(bin[i][start]);
-            print("line $lineNumber and i $i");
-            //TODO
-            print("start");
-          } else if (bin[i][start + booth.width - 1] != 0) {
-            print("end");
-          }
           bin[i].fillRange(start, start + booth.width, booth.id);
         }
         start += booth.width;
