@@ -1,0 +1,1 @@
+Solution for flohmarkt3.txt with the profit: 8611, is:

@@ -3,6 +3,7 @@ import 'dart:io';
 class Booth {
   Booth(this.id, this.start, this.end, this.width, {int value = 1})
       : this.height = end - start,
+        this.hourPrice = value * width,
         this.price = value * (end - start) * width;
   final int id;
   final int start;
@@ -10,6 +11,7 @@ class Booth {
 
   final int height;
   final int width; //length in meter
+  final int hourPrice; //price booth owner is willing to pay
   final int price; //price booth owner is willing to pay
 
   @override
@@ -18,13 +20,16 @@ class Booth {
   }
 }
 
+//global variable to measure revenue
+int revenue = 0;
+
 void main() async {
   List<String> filenames = [
     //"flohmarkt0.txt"
     //"flohmarkt1.txt",
-    //"flohmarkt2.txt",
+    "flohmarkt2.txt",
     //"flohmarkt3.txt",
-    "flohmarkt4.txt",
+    //"flohmarkt4.txt",
     //"flohmarkt5.txt",
     //"flohmarkt6.txt",
     //"flohmarkt7.txt",
@@ -44,12 +49,14 @@ void main() async {
     const end = 18;
     const width = 1000;
 
-    solve(start, end, width, booths);
+    var solution = solve(start, end, width, booths);
+    writeSolutionToFile(filename, solution, revenue);
+    revenue = 0;
   }
 }
 
 //using knapsack problem/rectangle packing problem
-void solve(int start, int end, int width, List<Booth> booths) {
+List<List<int>> solve(int start, int end, int width, List<Booth> booths) {
   int height = end - start;
   //Booth that one a stand by hour
   List<List<Booth>> timeFrames =
@@ -65,12 +72,11 @@ void solve(int start, int end, int width, List<Booth> booths) {
     }
   }
 
-  print(topDown(timeFrames, height, width));
+  return topDown(timeFrames, height, width);
 }
 
 //solve problem with top down approach
 List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
-  print(timeFrames);
   if (timeFrames.length != height) throw "invalid input";
 
   List<List<int>> solution =
@@ -84,7 +90,6 @@ List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
 }
 
 void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
-  print(booths);
   List<int> line = bin[lineNumber];
   //figure out how much space is available
   int start = -1;
@@ -96,7 +101,7 @@ void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
     }
 
     //start has been assigned and space is ending
-    else if (start > -1 && (index + 1 == line.length || line[index + 1] != 0)) {
+    if (start > -1 && (index + 1 == line.length || line[index + 1] != 0)) {
       int end = index;
       int space = end - start + 1;
       //booths that best fit the available space
@@ -112,34 +117,23 @@ void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
       //fill bin with booths
       for (var booth in toFill) {
         for (int i = lineNumber; i < (booth.height + lineNumber); i++) {
+          if (bin[i][start] != 0) {
+            print(bin[i][start]);
+            print("line $lineNumber and i $i");
+            //TODO
+            print("start");
+          } else if (bin[i][start + booth.width - 1] != 0) {
+            print("end");
+          }
           bin[i].fillRange(start, start + booth.width, booth.id);
         }
         start += booth.width;
+        //increase revenue for market
+        revenue += booth.price;
       }
-
       start = -1;
     }
   }
-}
-
-List<Booth> boothsFromLines(List<String> lines) {
-  List<Booth> booths = [];
-  for (int i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    var values = line.split(" ");
-    int start = int.parse(values[0]);
-    int end = int.parse(values[1]);
-    int width = int.parse(values[2]);
-
-    //value is specified
-    if (values.length > 3) {
-      int value = int.parse(values[3]);
-      booths.add(Booth(i + 1, start, end, width, value: value));
-    } else {
-      booths.add(Booth(i + 1, start, end, width));
-    }
-  }
-  return booths;
 }
 
 //taken from https://github.com/williamfiset/Algorithms/blob/master/src/main/java/com/williamfiset/algorithms/dp/Knapsack_01.java
@@ -158,7 +152,7 @@ List<Booth> knapsack(List<Booth> booths, int capacity) {
 
   for (int i = 1; i <= nItems; i++) {
     Booth booth = booths[i - 1];
-    int weight = booth.width, value = (booth.price / booth.height).round();
+    int weight = booth.width, value = booth.hourPrice;
 
     for (int sz = 1; sz <= capacity; sz++) {
       // Consider not picking this element
@@ -184,4 +178,63 @@ List<Booth> knapsack(List<Booth> booths, int capacity) {
     }
   }
   return boothsSelected;
+}
+
+List<Booth> boothsFromLines(List<String> lines) {
+  List<Booth> booths = [];
+  for (int i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var values = line.split(" ");
+    int start = int.parse(values[0]);
+    int end = int.parse(values[1]);
+    int width = int.parse(values[2]);
+
+    //value is specified
+    if (values.length > 3) {
+      int value = int.parse(values[3]);
+      booths.add(Booth(i + 1, start, end, width, value: value));
+    } else {
+      booths.add(Booth(i + 1, start, end, width));
+    }
+  }
+  return booths;
+}
+
+void writeSolutionToFile(
+    String problemName, List<List<int>> solution, int profit) async {
+  String name = problemName[0].toUpperCase() +
+      problemName.substring(1, problemName.indexOf("."));
+  String path = "A1\\beispiele\\solution${name}.txt"; //TODO
+
+  bool exist = await File(path).exists();
+
+  File file;
+  if (exist) {
+    file = await File(path);
+    //clear previous content
+    await file.writeAsString("");
+  } else {
+    file = await File(path).create();
+  }
+
+  String solutionString = "";
+
+  solution.forEach((timeFrame) {
+    timeFrame.forEach((element) {
+      String append;
+      if (element < 10) {
+        append = "00$element";
+      } else if (element < 100) {
+        append = "0$element";
+      } else {
+        append = "$element";
+      }
+      solutionString += "$append ";
+    });
+    solutionString += "\n";
+  });
+
+  await file.writeAsString(
+      "Solution for $problemName with the profit: $profit, is:\n");
+  await file.writeAsString(solutionString, mode: FileMode.append);
 }
