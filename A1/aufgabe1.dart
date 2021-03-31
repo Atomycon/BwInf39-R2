@@ -25,7 +25,7 @@ int revenue = 0;
 
 void main() async {
   List<String> filenames = [
-    //"flohmarkt0.txt"
+    "flohmarkt0.txt",
     "flohmarkt1.txt",
     "flohmarkt2.txt",
     "flohmarkt3.txt",
@@ -155,8 +155,9 @@ List<Booth> knapsack(List<Booth> booths, int capacity) {
       table[i][sz] = table[i - 1][sz];
       // Consider including the current element and
       // see if this would be more profitable
-      if (sz >= weight && table[i - 1][sz - weight] + value > table[i][sz])
+      if (sz >= weight && table[i - 1][sz - weight] + value > table[i][sz]) {
         table[i][sz] = table[i - 1][sz - weight] + value;
+      }
     }
   }
 
@@ -170,7 +171,7 @@ List<Booth> knapsack(List<Booth> booths, int capacity) {
     if (table[i][sz] != table[i - 1][sz]) {
       Booth booth = booths[i - 1];
       boothsSelected.add(booth);
-      sz -= (booth.price / booth.height).round();
+      sz -= booth.width;
     }
   }
   return boothsSelected;
@@ -181,6 +182,7 @@ List<Booth> boothsFromLines(List<String> lines) {
   for (int i = 0; i < lines.length; i++) {
     var line = lines[i];
     var values = line.split(" ");
+    int id = i + 2;
     int start = int.parse(values[0]);
     int end = int.parse(values[1]);
     int width = int.parse(values[2]);
@@ -188,9 +190,9 @@ List<Booth> boothsFromLines(List<String> lines) {
     //value is specified
     if (values.length > 3) {
       int value = int.parse(values[3]);
-      booths.add(Booth(i + 1, start, end, width, value: value));
+      booths.add(Booth(id, start, end, width, value: value));
     } else {
-      booths.add(Booth(i + 1, start, end, width));
+      booths.add(Booth(id, start, end, width));
     }
   }
   return booths;
