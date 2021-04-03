@@ -84,7 +84,6 @@ List<List<int>> solve(int start, int end, int width, List<Booth> booths) {
     }
   }
 
-  /*
   //check for more profitable solution
   List<List<int>> topDownSolution = topDown(timeFrames, height, width);
   int topDownRevenue = revenue;
@@ -99,8 +98,6 @@ List<List<int>> solve(int start, int end, int width, List<Booth> booths) {
   } else {
     return bottomUpSolution;
   }
-  */
-  return bottomUp(reversedTimeFrames, height, width);
 }
 
 //solve problem with top down approach
