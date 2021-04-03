@@ -58,21 +58,49 @@ void main() async {
 //using knapsack problem/rectangle packing problem
 List<List<int>> solve(int start, int end, int width, List<Booth> booths) {
   int height = end - start;
-  //Booth that one a stand by hour
+  //sort the booths according to the hour from which they want a booth
   List<List<Booth>> timeFrames =
+      List.filled(height, null).map((e) => <Booth>[]).toList();
+  //sort the booths by the hour until they want a booth
+  List<List<Booth>> reversedTimeFrames =
       List.filled(height, null).map((e) => <Booth>[]).toList();
 
   //timeframe: from timeframe to timeframe + 1
   for (int timeFrame = start, i = 0; timeFrame < end; timeFrame++, i++) {
     for (var booth in booths) {
-      //Booth wants to have stand in timeframe
+      //sort the booths according to the hour from which they want a booth
       if (booth.start == timeFrame) {
         timeFrames[i].add(booth);
       }
     }
   }
 
-  return topDown(timeFrames, height, width);
+  for (int timeFrame = end, i = 0; timeFrame > start; timeFrame--, i++) {
+    for (var booth in booths) {
+      //sort the booths by the hour until they want a booth
+      if (booth.end == timeFrame) {
+        reversedTimeFrames[i].add(booth);
+      }
+    }
+  }
+
+  /*
+  //check for more profitable solution
+  List<List<int>> topDownSolution = topDown(timeFrames, height, width);
+  int topDownRevenue = revenue;
+  revenue = 0;
+  List<List<int>> bottomUpSolution =
+      bottomUp(reversedTimeFrames, height, width);
+  int bottomUpRevenue = revenue;
+
+  if (topDownRevenue >= bottomUpRevenue) {
+    revenue = topDownRevenue;
+    return topDownSolution;
+  } else {
+    return bottomUpSolution;
+  }
+  */
+  return bottomUp(reversedTimeFrames, height, width);
 }
 
 //solve problem with top down approach
@@ -87,11 +115,39 @@ List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
     element.sort((a, b) => b.width.compareTo(a.width));
   });
 
-  for (int hour = 0; hour < solution.length; hour++) {
-    fillLine(hour, solution, timeFrames[hour]);
+  //first line is first hour
+  for (int line = 0; line < solution.length; line++) {
+    fillLine(line, solution, timeFrames[line]);
   }
 
   return solution;
+}
+
+//solve problem with a bottom up approach
+List<List<int>> bottomUp(List<List<Booth>> timeFrames, int height, int width) {
+  if (timeFrames.length != height) throw "invalid input";
+
+  //from last to first hour
+  List<List<int>> solution =
+      List.filled(height, null).map((e) => List.filled(width, 0)).toList();
+
+  //sort timeFrames by width so bigger blocks gets placed first
+  timeFrames.forEach((element) {
+    element.sort((a, b) => b.width.compareTo(a.width));
+  });
+
+  //first line is last hour
+  for (int line = 0; line < solution.length; line++) {
+    fillLine(line, solution, timeFrames[line]);
+  }
+
+  //correct ordered solution
+  List<List<int>> flippedSolution = [];
+  for (int i = solution.length - 1; i >= 0; i--) {
+    flippedSolution.add(solution[i]);
+  }
+
+  return flippedSolution;
 }
 
 void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
