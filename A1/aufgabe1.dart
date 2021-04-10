@@ -23,9 +23,10 @@ class Booth {
 //global variable to measure revenue
 int revenue = 0;
 
+//run by using cmd: 1. go in the current dict 2. run: dart aufgabe1.dart
 void main() async {
   List<String> filenames = [
-    "flohmarkt0.txt",
+    "flohmarkt0.txt", //including an example for the extension of the problem
     "flohmarkt1.txt",
     "flohmarkt2.txt",
     "flohmarkt3.txt",
