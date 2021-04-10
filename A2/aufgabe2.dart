@@ -84,8 +84,7 @@ void main() async {
     "spiesse9.txt", //to many unknown fruits
   ];
   for (String filename in filenames) {
-    File file =
-        await File("A2\\beispiele\\$filename"); //TODO beispiele\\$filename
+    File file = await File("beispiele\\$filename");
     //readAsLines to also handle CR LF endings
     List<String> lines = await file.readAsLines();
     lines.removeWhere((element) => element.isEmpty); //remove empty lines
@@ -121,9 +120,6 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
   List<int> bowls = [];
   List<Skewer> reducedSkewers = reduce(skewers);
 
-  //reduction analysis
-  //print("Reduced skewers $reducedSkewers");
-
   //map single items and store combinations in a separate list
   Map<String, int> bowlByFruit = {};
   List<Skewer> combinations = [];
@@ -138,7 +134,7 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
   try {
     //assign pairs O(n)
     for (int i = 0; i < targetFruits.length; i++) {
-      //assign clear pairs
+      //assign simple pairs
       if (bowlByFruit.containsKey(targetFruits[i])) {
         bowls.add(bowlByFruit.putIfAbsent(
             targetFruits[i], () => throw "No bowl value"));
@@ -146,23 +142,21 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
         //do not skip the next item
         i--;
       }
-      //try to assign unclear pairs
+      //try to assign multiple pairs
       else {
         //O(n/2)
         for (int j = 0; j < combinations.length; j++) {
           //test if targetFruit can be find in skewer, if not, fruit is not noted
-          //more combinations, lesser runtime complexity. Lesser combinations, more runtime complexity but the current loop has a lesser runtime complexity
+          //more combinations, lesser runtime complexity.
+          // Lesser combinations, more runtime complexity
+          //but the current loop has a lesser runtime complexity
           if (combinations[j].fruits.contains(targetFruits[i])) {
             //test if every fruit is in the targetFruits
-            //more combinations, lesser runtime complexity. Lesser combinations, more runtime complexity but the current loop has a lesser runtime complexity
+            //more combinations, lesser runtime complexity.
+            // Lesser combinations, more runtime complexity
+            //but the current loop has a lesser runtime complexity
             combinations[j].fruits.forEach((fruit) {
               int targetFruitsLength = targetFruits.length;
-              /*
-            //easier to read, but adds O(n) to runtime complexity
-            if (!targetFruits.contains(fruit)) {
-              throw "unsolvable: $fruit is in a group combination but not wanted in the final skewer";
-            } 
-            */
               //remove matching fruits
               targetFruits.removeWhere((targetFruit) => fruit == targetFruit);
               //if not element is removed,no targetFruit not in group combination
@@ -220,20 +214,22 @@ List<int> solve(List<Skewer> skewers, List<String> targetFruits, int nFruits) {
 //O=(m^2)*O(cutOverlap()) of for loops (i = j cuts runtime in half O=1/2(m^2)), m=skwers => ignoring insert/removeAt
 List<Skewer> reduce(List<Skewer> skewers) {
   for (int i = 0; i < skewers.length; i++) {
-    //j = i because everything < i has already been checked for overlapping parts.
-    //j= i + 1 because on pos i is the current item and comparing the same item does not make sense
+    //j = i + 1 because on pos i is the current item
     for (int j = i + 1; j < skewers.length; j++) {
       Skewer overlapSkewer = skewers[i].cutOverlap(skewers[j]);
       //remove empty skewer
       //if empty, the origin skewers cannot be empty
       if (overlapSkewer.isNotEmpty) {
         skewers.insert(i, overlapSkewer);
-        //both skewers empty.
-        //if overlapSkewer is placed after the second Skewer (i > j), check for the j position
+        //if overlapSkewer is placed after the second Skewer (i > j)
+        //check for the j position
+
+        //both skewers empty
         if (skewers[i + 1].isEmpty && skewers[i > j ? j : j + 1].isEmpty) {
           skewers.removeAt(i + 1);
           skewers.removeAt(j);
-          //go one step back to check element on the new position (only one step back necessary because first empty position is replaced with the cut item)
+          //go one step back to check element on the new position
+          //(only one step back necessary because first empty position is replaced with the cut item)
           j--;
         }
         //first skewer empty
@@ -245,7 +241,8 @@ List<Skewer> reduce(List<Skewer> skewers) {
         else if (skewers[i > j ? j : j + 1].isEmpty) {
           skewers.removeAt(i > j ? j : j + 1);
         }
-        //no skewer empty, go one step further (since one item was added to the list, not increasing j would result in a comparison to the just compared skewer)
+        //no skewer empty, go one step further
+        //(since one item was added to the list, not increasing j would result in a comparison of the just compared skewer)
         else {
           j++;
         }
