@@ -3,20 +3,20 @@ import 'dart:io';
 class Booth {
   Booth(this.id, this.start, this.end, this.width, {int value = 1})
       : this.height = end - start,
-        this.hourPrice = value * width,
-        this.price = value * (end - start) * width;
+        this.hourRevenue = value * width,
+        this.revenue = value * (end - start) * width;
   final int id;
   final int start;
   final int end;
 
   final int height;
   final int width; //length in meter
-  final int hourPrice; //price booth owner is willing to pay
-  final int price; //price booth owner is willing to pay
+  final int hourRevenue; //price booth owner is willing to pay per hour
+  final int revenue; //price booth owner is willing to pay
 
   @override
   String toString() {
-    return "Booth$id($start to $end width:$width worth:$price";
+    return "Booth$id($start to $end width:$width worth:$revenue";
   }
 }
 
@@ -36,15 +36,13 @@ void main() async {
   ];
 
   for (String filename in filenames) {
-    File file =
-        await File("A1\\beispiele\\$filename"); //TODO beispiele\\$filename
+    File file = await File("beispiele\\$filename");
     //readAsLines to also handle CR LF endings
     List<String> lines = await file.readAsLines();
     lines.removeWhere((element) => element.isEmpty); //remove empty lines
-    int boothCount = int.parse(lines[0]);
     List<Booth> booths = boothsFromLines(lines.sublist(1));
 
-    //Properties of the flea market
+    //properties of the market
     const start = 8;
     const end = 18;
     const width = 1000;
@@ -55,20 +53,19 @@ void main() async {
   }
 }
 
-//using knapsack problem/rectangle packing problem
+//using knapsack problem
 List<List<int>> solve(int start, int end, int width, List<Booth> booths) {
   int height = end - start;
-  //sort the booths according to the hour from which they want a booth
+  //sorted booths according to the starting hour
   List<List<Booth>> timeFrames =
       List.filled(height, null).map((e) => <Booth>[]).toList();
-  //sort the booths by the hour until they want a booth
+  //sorted booths according to the ending hour
   List<List<Booth>> reversedTimeFrames =
       List.filled(height, null).map((e) => <Booth>[]).toList();
 
-  //timeframe: from timeframe to timeframe + 1
   for (int timeFrame = start, i = 0; timeFrame < end; timeFrame++, i++) {
     for (var booth in booths) {
-      //sort the booths according to the hour from which they want a booth
+      //sort the booths according to the starting hour
       if (booth.start == timeFrame) {
         timeFrames[i].add(booth);
       }
@@ -77,14 +74,14 @@ List<List<int>> solve(int start, int end, int width, List<Booth> booths) {
 
   for (int timeFrame = end, i = 0; timeFrame > start; timeFrame--, i++) {
     for (var booth in booths) {
-      //sort the booths by the hour until they want a booth
+      //sort the booths according to the ending hour
       if (booth.end == timeFrame) {
         reversedTimeFrames[i].add(booth);
       }
     }
   }
 
-  //check for more profitable solution
+  //check for most profitable solution
   List<List<int>> topDownSolution = topDown(timeFrames, height, width);
   int topDownRevenue = revenue;
   revenue = 0;
@@ -100,19 +97,19 @@ List<List<int>> solve(int start, int end, int width, List<Booth> booths) {
   }
 }
 
-//solve problem with top down approach
+//solve problem with a top down approach
 List<List<int>> topDown(List<List<Booth>> timeFrames, int height, int width) {
   if (timeFrames.length != height) throw "invalid input";
 
   List<List<int>> solution =
       List.filled(height, null).map((e) => List.filled(width, 0)).toList();
 
-  //sort timeFrames by width so bigger blocks gets placed first
+  //sort timeFrames by width so bigger blocks get placed first
   timeFrames.forEach((element) {
     element.sort((a, b) => b.width.compareTo(a.width));
   });
 
-  //first line is first hour
+  //first line is the first hour
   for (int line = 0; line < solution.length; line++) {
     fillLine(line, solution, timeFrames[line]);
   }
@@ -128,7 +125,7 @@ List<List<int>> bottomUp(List<List<Booth>> timeFrames, int height, int width) {
   List<List<int>> solution =
       List.filled(height, null).map((e) => List.filled(width, 0)).toList();
 
-  //sort timeFrames by width so bigger blocks gets placed first
+  //sort timeFrames by width so bigger blocks get placed first
   timeFrames.forEach((element) {
     element.sort((a, b) => b.width.compareTo(a.width));
   });
@@ -164,9 +161,14 @@ void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
       int space = end - start + 1;
       //booths that best fit the available space
       List<Booth> toFill = knapsack(booths, space);
-      //sort booths by their height (from large to small)
-      toFill.sort((a, b) => b.height.compareTo(a.height));
-
+      //sort booths by their height
+      if (index < 500) {
+        //from large to small
+        toFill.sort((a, b) => b.height.compareTo(a.height));
+      } else {
+        //from small to large
+        toFill.sort((a, b) => a.height.compareTo(b.height));
+      }
       //remove best fit booths
       booths.removeWhere((elementBooth) =>
           toFill.any((elementBestFit) => elementBooth.id == elementBestFit.id));
@@ -178,15 +180,15 @@ void fillLine(int lineNumber, List<List<int>> bin, List<Booth> booths) {
         }
         start += booth.width;
         //increase revenue for market
-        revenue += booth.price;
+        revenue += booth.revenue;
       }
       start = -1;
     }
   }
 }
 
-//taken from https://github.com/williamfiset/Algorithms/blob/master/src/main/java/com/williamfiset/algorithms/dp/Knapsack_01.java
-//solving knapsack with tabulation, ignoring height of booth
+//idea taken from https://github.com/williamfiset/Algorithms/blob/master/src/main/java/com/williamfiset/algorithms/dp/Knapsack_01.java
+//solving knapsack with tabulation, ignoring height of booth O(n(booths)*c)
 List<Booth> knapsack(List<Booth> booths, int capacity) {
   if (capacity == 0 || booths.isEmpty) {
     return [];
@@ -201,7 +203,7 @@ List<Booth> knapsack(List<Booth> booths, int capacity) {
 
   for (int i = 1; i <= nItems; i++) {
     Booth booth = booths[i - 1];
-    int weight = booth.width, value = booth.hourPrice;
+    int weight = booth.width, value = booth.hourRevenue;
 
     for (int sz = 1; sz <= capacity; sz++) {
       // Consider not picking this element
@@ -219,7 +221,7 @@ List<Booth> knapsack(List<Booth> booths, int capacity) {
 
   // Using the information inside the table we can backtrack and determine
   // which items were selected during the dynamic programming phase. The idea
-  // is that if DP[i][sz] != DP[i-1][sz] then the item was selected
+  // is that if table[i][sz] != table[i-1][sz] then the item was selected
   for (int i = nItems; i > 0; i--) {
     if (table[i][sz] != table[i - 1][sz]) {
       Booth booth = booths[i - 1];
@@ -243,6 +245,7 @@ List<Booth> boothsFromLines(List<String> lines) {
     //value is specified
     if (values.length > 3) {
       int value = int.parse(values[3]);
+      if (value <= 0) throw "Cost should not be less than 1";
       booths.add(Booth(id, start, end, width, value: value));
     } else {
       booths.add(Booth(id, start, end, width));
@@ -255,7 +258,7 @@ void writeSolutionToFile(
     String problemName, List<List<int>> solution, int profit) async {
   String name = problemName[0].toUpperCase() +
       problemName.substring(1, problemName.indexOf("."));
-  String path = "A1\\beispiele\\solution${name}.txt"; //TODO
+  String path = "beispiele\\solution${name}.txt";
 
   bool exist = await File(path).exists();
 
